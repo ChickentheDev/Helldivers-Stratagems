@@ -28,40 +28,40 @@ public class DestroyerModel {
         root.addOrReplaceChild("hull", CubeListBuilder.create().texOffs(0, 0)
                 .addBox(-40.0F, -4.0F, -5.0F, 80.0F, 8.0F, 10.0F), PartPose.ZERO);
         // Tapered nose
-        root.addOrReplaceChild("nose", CubeListBuilder.create().texOffs(0, 0)
+        root.addOrReplaceChild("nose", CubeListBuilder.create().texOffs(0, 18)
                 .addBox(40.0F, -3.0F, -3.5F, 20.0F, 6.0F, 7.0F), PartPose.ZERO);
         // Rear engine block
-        root.addOrReplaceChild("engine_block", CubeListBuilder.create().texOffs(0, 0)
+        root.addOrReplaceChild("engine_block", CubeListBuilder.create().texOffs(0, 31)
                 .addBox(-64.0F, -6.0F, -6.0F, 24.0F, 12.0F, 12.0F), PartPose.ZERO);
         // Bridge tower and top
-        root.addOrReplaceChild("bridge", CubeListBuilder.create().texOffs(0, 0)
+        root.addOrReplaceChild("bridge", CubeListBuilder.create().texOffs(72, 31)
                 .addBox(10.0F, 4.0F, -3.0F, 20.0F, 7.0F, 6.0F), PartPose.ZERO);
-        root.addOrReplaceChild("bridge_top", CubeListBuilder.create().texOffs(0, 0)
+        root.addOrReplaceChild("bridge_top", CubeListBuilder.create().texOffs(124, 31)
                 .addBox(14.0F, 11.0F, -2.0F, 12.0F, 4.0F, 4.0F), PartPose.ZERO);
-        root.addOrReplaceChild("antenna", CubeListBuilder.create().texOffs(0, 0)
+        root.addOrReplaceChild("antenna", CubeListBuilder.create().texOffs(124, 39)
                 .addBox(18.0F, 15.0F, -0.5F, 2.0F, 9.0F, 1.0F), PartPose.ZERO);
         // Side wings
-        root.addOrReplaceChild("wing_left", CubeListBuilder.create().texOffs(0, 0)
+        root.addOrReplaceChild("wing_left", CubeListBuilder.create().texOffs(0, 55)
                 .addBox(-20.0F, -2.0F, 5.0F, 40.0F, 3.0F, 22.0F), PartPose.ZERO);
-        root.addOrReplaceChild("wing_right", CubeListBuilder.create().texOffs(0, 0)
+        root.addOrReplaceChild("wing_right", CubeListBuilder.create().texOffs(0, 80)
                 .addBox(-20.0F, -2.0F, -27.0F, 40.0F, 3.0F, 22.0F), PartPose.ZERO);
 
         // Engine glows (bright cyan in the texture)
         for (int i = 0; i < 3; i++) {
             float z = -4.5F + i * 3.0F;
-            root.addOrReplaceChild("engine_glow_" + i, CubeListBuilder.create().texOffs(96, 0)
+            root.addOrReplaceChild("engine_glow_" + i, CubeListBuilder.create().texOffs(180, 0)
                     .addBox(-66.0F, -3.5F, z, 2.0F, 7.0F, 3.0F), PartPose.ZERO);
         }
         // Wingtip nav lights (blink red/green)
-        root.addOrReplaceChild("nav_light_left", CubeListBuilder.create().texOffs(96, 32)
+        root.addOrReplaceChild("nav_light_left", CubeListBuilder.create().texOffs(180, 10)
                 .addBox(-2.0F, -1.0F, 26.0F, 4.0F, 2.0F, 2.0F), PartPose.ZERO);
-        root.addOrReplaceChild("nav_light_right", CubeListBuilder.create().texOffs(112, 32)
+        root.addOrReplaceChild("nav_light_right", CubeListBuilder.create().texOffs(192, 10)
                 .addBox(-2.0F, -1.0F, -28.0F, 4.0F, 2.0F, 2.0F), PartPose.ZERO);
         // Radar bar on a pivot so it can spin
-        root.addOrReplaceChild("radar", CubeListBuilder.create().texOffs(0, 0)
+        root.addOrReplaceChild("radar", CubeListBuilder.create().texOffs(180, 14)
                 .addBox(-2.0F, 0.0F, -0.5F, 4.0F, 4.0F, 1.0F), PartPose.offset(20.0F, 15.0F, 0.0F));
 
-        return LayerDefinition.create(mesh, 128, 128);
+        return LayerDefinition.create(mesh, 256, 256);
     }
 
     private final ModelPart root;

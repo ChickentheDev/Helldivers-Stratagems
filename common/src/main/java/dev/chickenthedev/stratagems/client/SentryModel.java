@@ -36,14 +36,14 @@ public class SentryModel {
                 .texOffs(0, 0).addBox(-7, 0, -7, 14, 4, 14),
                 PartPose.ZERO);
         root.addOrReplaceChild("column", CubeListBuilder.create()
-                .texOffs(0, 18).addBox(-3, 4, -3, 6, 8, 6),
+                .texOffs(40, 18).addBox(-3, 4, -3, 6, 8, 6),
                 PartPose.ZERO);
 
         PartDefinition head = root.addOrReplaceChild("head", CubeListBuilder.create()
-                .texOffs(28, 0).addBox(-5, -4, -5, 10, 8, 10),
+                .texOffs(0, 18).addBox(-5, -4, -5, 10, 8, 10),
                 PartPose.offset(0, 14, 0));
         head.addOrReplaceChild("barrel", CubeListBuilder.create()
-                .texOffs(28, 18).addBox(-1.5F, -1.5F, 4, 3, 3, 14),
+                .texOffs(0, 36).addBox(-1.5F, -1.5F, 4, 3, 3, 14),
                 PartPose.ZERO);
 
         return LayerDefinition.create(mesh, 64, 64);

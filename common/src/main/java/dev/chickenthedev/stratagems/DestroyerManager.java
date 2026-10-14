@@ -35,7 +35,13 @@ public class DestroyerManager {
                 Constants.LOG.info("Super Destroyer on station for {}", player.getScoreboardName());
             }
         }
-        // Drop tracking for players who logged out; their ship is re-created on return.
-        DESTROYERS.keySet().removeIf(id -> !online.contains(id));
+        // Drop tracking for players who logged out or left the overworld, and
+        // discard their ship so ghost destroyers don't accumulate. A new ship
+        // is created when they return.
+        DESTROYERS.entrySet().removeIf(entry -> {
+            if (online.contains(entry.getKey())) return false;
+            entry.getValue().discard();
+            return true;
+        });
     }
 }
