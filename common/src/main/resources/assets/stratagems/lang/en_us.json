@@ -1,0 +1,12 @@
+{
+  "item.stratagems.stratagem_beacon": "Stratagem Beacon",
+  "item.stratagems.stratagem_uplink": "Stratagem Uplink",
+  "key.categories.stratagems": "Helldivers Stratagems",
+  "key.stratagems.down": "Code: Down",
+  "key.stratagems.left": "Code: Left",
+  "key.stratagems.right": "Code: Right",
+  "key.stratagems.up": "Code: Up",
+  "key.stratagems.uplink": "Open Stratagem Code Entry",
+  "entity.stratagems.super_destroyer": "Super Destroyer",
+  "entity.stratagems.sentry": "Sentry"
+}
