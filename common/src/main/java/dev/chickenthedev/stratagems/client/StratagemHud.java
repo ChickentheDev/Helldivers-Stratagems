@@ -18,6 +18,12 @@ public class StratagemHud {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.gui.screen() != null) return;
 
+        net.minecraft.network.chat.Component hint = ClientStratagemInput.getHint();
+        if (hint != null) {
+            centeredText(graphics, mc, hint.getString(), graphics.guiWidth() / 2,
+                    graphics.guiHeight() - 60, YELLOW);
+        }
+
         if (ClientStratagemInput.isCodeMode()) {
             renderCodePanel(graphics, mc);
         } else if (holdingUplink(mc)) {

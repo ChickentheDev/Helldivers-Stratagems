@@ -1,6 +1,8 @@
 {
   "item.stratagems.stratagem_beacon": "Stratagem Beacon",
   "item.stratagems.stratagem_uplink": "Stratagem Uplink",
+  "itemGroup.stratagems": "Helldivers Stratagems",
+  "message.stratagems.hold_uplink": "Hold the Stratagem Uplink and press G to enter a code",
   "key.categories.stratagems": "Helldivers Stratagems",
   "key.stratagems.down": "Code: Down",
   "key.stratagems.left": "Code: Left",

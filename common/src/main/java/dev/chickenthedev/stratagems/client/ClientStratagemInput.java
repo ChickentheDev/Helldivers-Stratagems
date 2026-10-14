@@ -7,6 +7,7 @@ import dev.chickenthedev.stratagems.Stratagem;
 import dev.chickenthedev.stratagems.StratagemRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.ItemStack;
 
@@ -26,9 +27,18 @@ public class ClientStratagemInput {
     private static final List<Direction> buffer = new ArrayList<>();
     private static long lastInputMs = 0;
     private static String armedDisplay = null;
+    private static Component hint = null;
+    private static long hintUntilMs = 0;
 
     public static void init(Consumer<String> sender) {
         armSender = sender;
+    }
+
+    /** Transient hint shown on the HUD (e.g. after pressing G without the uplink held). */
+    public static Component getHint() {
+        if (hint != null && System.currentTimeMillis() < hintUntilMs) return hint;
+        hint = null;
+        return null;
     }
 
     public static boolean isCodeMode() {
@@ -65,7 +75,11 @@ public class ClientStratagemInput {
             exitCodeMode();
             return;
         }
-        if (!holdingUplink()) return;
+        if (!holdingUplink()) {
+            hint = Component.translatable("message.stratagems.hold_uplink");
+            hintUntilMs = System.currentTimeMillis() + 2500;
+            return;
+        }
         codeMode = true;
         buffer.clear();
         lastInputMs = System.currentTimeMillis();
