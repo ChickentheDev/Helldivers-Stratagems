@@ -77,12 +77,15 @@ public class StratagemManager {
     // armed stratagem and starts its cooldown.
     public static boolean tryThrow(ServerPlayer player) {
         UUID id = player.getUUID();
-        String stratagemId = ARMED.remove(id);
-        if (stratagemId == null) return false;
+        // Read, don't remove: a failed throw (cooldown, bad id) must not eat the armed state.
+        String stratagemId = ARMED.get(id);
+        if (stratagemId == null) { return false; }
         Stratagem stratagem = StratagemRegistry.get(stratagemId);
-        if (stratagem == null) return false;
+        if (stratagem == null) { return false; }
         ItemStack uplinkStack = new ItemStack(ModItems.UPLINK.get());
-        if (player.getCooldowns().isOnCooldown(uplinkStack)) return false;
+        if (player.getCooldowns().isOnCooldown(uplinkStack)) { return false; }
+        // Only consume the armed stratagem on the success path.
+        ARMED.remove(id);
 
         ServerLevel level = player.level();
         StratagemBeaconEntity beacon = new StratagemBeaconEntity(ModEntities.BEACON.get(), level);
