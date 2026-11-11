@@ -38,6 +38,10 @@ public class StratagemConfig {
                 try (FileReader reader = new FileReader(FILE)) {
                     INSTANCE = GSON.fromJson(reader, StratagemConfig.class);
                     if (INSTANCE == null) INSTANCE = new StratagemConfig();
+                    // A hand-edited config with explicit nulls would NPE on
+                    // first use; fall back to empty maps instead.
+                    if (INSTANCE.cooldownSeconds == null) INSTANCE.cooldownSeconds = new HashMap<>();
+                    if (INSTANCE.callInSeconds == null) INSTANCE.callInSeconds = new HashMap<>();
                 }
                 Constants.LOG.info("Loaded stratagem config from {}", FILE.getPath());
             } else {

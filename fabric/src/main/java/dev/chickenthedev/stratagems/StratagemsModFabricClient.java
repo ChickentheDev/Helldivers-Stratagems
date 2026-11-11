@@ -64,6 +64,7 @@ public class StratagemsModFabricClient implements ClientModInitializer {
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(Constants.MOD_ID, "hud"), StratagemHud::render);
 
         EntityRendererRegistry.register(ModEntities.BEACON.get(), ThrownItemRenderer::new);
+        EntityRendererRegistry.register(ModEntities.STRIKE_SHELL.get(), ThrownItemRenderer::new);
         EntityRendererRegistry.register(ModEntities.SHIELD_DOME.get(), NoOpRenderer::new);
 
         ModelLayerRegistry.registerModelLayer(DestroyerModel.LAYER, DestroyerModel::createBodyLayer);

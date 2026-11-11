@@ -27,7 +27,7 @@ public class StratagemRegistry {
         register(new Stratagem("orbital_120mm", "Orbital 120MM HE Barrage", "Offensive",
                 180, 6, RIGHT, RIGHT, DOWN, LEFT, RIGHT, DOWN));
         register(new Stratagem("orbital_airburst", "Orbital Airburst Strike", "Offensive",
-                100, 3, RIGHT, RIGHT, RIGHT));
+                90, 3, RIGHT, RIGHT, RIGHT));
         register(new Stratagem("orbital_smoke", "Orbital Smoke Strike", "Offensive",
                 75, 3, RIGHT, RIGHT, DOWN, UP));
         register(new Stratagem("orbital_ems", "Orbital EMS Strike", "Offensive",

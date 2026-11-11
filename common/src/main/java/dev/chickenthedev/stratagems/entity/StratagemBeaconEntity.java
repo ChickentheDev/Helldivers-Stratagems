@@ -26,6 +26,7 @@ public class StratagemBeaconEntity extends ThrowableItemProjectile {
     private String stratagemId = "";
     private boolean landed = false;
     private int ticksUntilStrike = 60;
+    private int landedTicks = 0;
     private double dirX = 0;
     private double dirZ = 1;
 
@@ -69,10 +70,13 @@ public class StratagemBeaconEntity extends ThrowableItemProjectile {
     @Override
     public void tick() {
         if (landed) {
+            // The landed branch returns early without super.tick(), so tickCount
+            // is frozen — use a dedicated counter for the beep/smoke telegraph.
+            landedTicks++;
             if (!level().isClientSide()) {
                 ServerLevel serverLevel = (ServerLevel) level();
                 Vec3 pos = position();
-                if (tickCount % 20 == 0) {
+                if (landedTicks % 20 == 0) {
                     serverLevel.sendParticles(ParticleTypes.SMOKE, pos.x, pos.y + 0.4, pos.z, 6, 0.1, 0.3, 0.1, 0.02);
                     serverLevel.sendParticles(ParticleTypes.FLAME, pos.x, pos.y + 0.2, pos.z, 2, 0.05, 0.1, 0.05, 0.0);
                     level().playSound(null, blockPosition(), SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.BLOCKS, 0.6F, 2.0F);
@@ -92,6 +96,7 @@ public class StratagemBeaconEntity extends ThrowableItemProjectile {
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder); // defines DATA_ITEM_STACK; without this, Builder.build() throws IllegalStateException on the null slot
     }
 
     @Override
@@ -100,6 +105,7 @@ public class StratagemBeaconEntity extends ThrowableItemProjectile {
         output.putString("Stratagem", stratagemId);
         output.putBoolean("Landed", landed);
         output.putInt("TicksUntilStrike", ticksUntilStrike);
+        output.putInt("LandedTicks", landedTicks);
         output.putDouble("DirX", dirX);
         output.putDouble("DirZ", dirZ);
     }
@@ -110,6 +116,7 @@ public class StratagemBeaconEntity extends ThrowableItemProjectile {
         stratagemId = input.getStringOr("Stratagem", "");
         landed = input.getBooleanOr("Landed", false);
         ticksUntilStrike = input.getIntOr("TicksUntilStrike", 60);
+        landedTicks = input.getIntOr("LandedTicks", 0);
         dirX = input.getDoubleOr("DirX", 0);
         dirZ = input.getDoubleOr("DirZ", 1);
     }

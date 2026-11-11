@@ -29,6 +29,7 @@ public class ClientStratagemInput {
     private static String armedDisplay = null;
     private static Component hint = null;
     private static long hintUntilMs = 0;
+    private static net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> lastDimension = null;
 
     public static void init(Consumer<String> sender) {
         armSender = sender;
@@ -117,6 +118,19 @@ public class ClientStratagemInput {
     // Called every client tick from the platform entrypoint.
     public static void onTick() {
         Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) {
+            // Logged out / disconnected: the server drops armed state, so the
+            // HUD must not keep showing a stale "ARMED:".
+            armedDisplay = null;
+            lastDimension = null;
+            return;
+        }
+        net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dim = mc.player.level().dimension();
+        if (lastDimension != null && !lastDimension.equals(dim)) {
+            // Changed dimension: destroyers (and armed state) are overworld-only.
+            armedDisplay = null;
+        }
+        lastDimension = dim;
         if (codeMode) {
             if (!holdingUplink() || mc.gui.screen() != null
                     || System.currentTimeMillis() - lastInputMs > CODE_MODE_TIMEOUT_MS) {

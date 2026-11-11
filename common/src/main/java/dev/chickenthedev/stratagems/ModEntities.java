@@ -4,6 +4,7 @@ import dev.chickenthedev.stratagems.entity.DestroyerEntity;
 import dev.chickenthedev.stratagems.entity.SentryEntity;
 import dev.chickenthedev.stratagems.entity.ShieldDomeEntity;
 import dev.chickenthedev.stratagems.entity.StratagemBeaconEntity;
+import dev.chickenthedev.stratagems.entity.StrikeShellEntity;
 import dev.chickenthedev.stratagems.platform.services.IRegistryHelper;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -19,6 +20,7 @@ public class ModEntities {
     public static Supplier<EntityType<ShieldDomeEntity>> SHIELD_DOME;
     public static Supplier<EntityType<DestroyerEntity>> DESTROYER;
     public static Supplier<EntityType<SentryEntity>> SENTRY;
+    public static Supplier<EntityType<StrikeShellEntity>> STRIKE_SHELL;
 
     public static void register(IRegistryHelper registries) {
         BEACON = registries.registerEntityType("stratagem_beacon", () ->
@@ -34,9 +36,10 @@ public class ModEntities {
                         .updateInterval(20)
                         .build(key("shield_dome")));
         // Big cull box on purpose: the rendered ship is far larger than a normal entity.
+        // The Helldivers-style hull is ~107 blocks long at render scale.
         DESTROYER = registries.registerEntityType("super_destroyer", () ->
                 EntityType.Builder.<DestroyerEntity>of(DestroyerEntity::new, MobCategory.MISC)
-                        .sized(64.0F, 24.0F)
+                        .sized(110.0F, 30.0F)
                         .clientTrackingRange(32)
                         .updateInterval(3)
                         .build(key("super_destroyer")));
@@ -46,6 +49,12 @@ public class ModEntities {
                         .clientTrackingRange(10)
                         .updateInterval(3)
                         .build(key("sentry")));
+        STRIKE_SHELL = registries.registerEntityType("strike_shell", () ->
+                EntityType.Builder.<StrikeShellEntity>of(StrikeShellEntity::new, MobCategory.MISC)
+                        .sized(0.6F, 0.6F)
+                        .clientTrackingRange(16)
+                        .updateInterval(2)
+                        .build(key("strike_shell")));
     }
 
     private static ResourceKey<EntityType<?>> key(String id) {

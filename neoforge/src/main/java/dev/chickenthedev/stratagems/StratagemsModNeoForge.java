@@ -10,6 +10,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
@@ -52,6 +53,13 @@ public class StratagemsModNeoForge {
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> {
             StratagemManager.serverTick(event.getServer());
             DestroyerManager.serverTick(event.getServer());
+        });
+
+        // Single-player shares one JVM across worlds: drop per-world static
+        // state on server stop so it can't leak into the next world.
+        NeoForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> {
+            StratagemManager.clearServerState();
+            DestroyerManager.clearServerState();
         });
 
         // Client classes are absent on a dedicated server; only init client code where they exist.

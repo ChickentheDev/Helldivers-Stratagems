@@ -1,8 +1,10 @@
 package dev.chickenthedev.stratagems;
 
+import dev.chickenthedev.stratagems.entity.DestroyerEntity;
 import dev.chickenthedev.stratagems.entity.SentryEntity;
 import dev.chickenthedev.stratagems.entity.ShieldDomeEntity;
 import dev.chickenthedev.stratagems.entity.StratagemBeaconEntity;
+import dev.chickenthedev.stratagems.entity.StrikeShellEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -50,6 +52,9 @@ public class StratagemManager {
 
     private static final Map<UUID, String> ARMED = new HashMap<>();
     private static final List<DelayedAction> QUEUE = new ArrayList<>();
+    // Game-time tick when each player's uplink cooldown ends, so a blocked
+    // throw can report how long is left instead of failing silently.
+    private static final Map<UUID, Long> COOLDOWN_END = new HashMap<>();
 
     private static class DelayedAction {
         final ServerLevel level;
@@ -71,6 +76,15 @@ public class StratagemManager {
 
     public static void clearArmed(UUID playerId) {
         ARMED.remove(playerId);
+        COOLDOWN_END.remove(playerId);
+    }
+
+    // Called on server stop: in single-player the JVM survives quit-to-title,
+    // so stale armed/cooldown/queued state must not leak into the next world.
+    public static void clearServerState() {
+        ARMED.clear();
+        COOLDOWN_END.clear();
+        QUEUE.clear();
     }
 
     // Called from the uplink item's server-side use(). Spawns the beacon for the
@@ -83,7 +97,14 @@ public class StratagemManager {
         Stratagem stratagem = StratagemRegistry.get(stratagemId);
         if (stratagem == null) { return false; }
         ItemStack uplinkStack = new ItemStack(ModItems.UPLINK.get());
-        if (player.getCooldowns().isOnCooldown(uplinkStack)) { return false; }
+        if (player.getCooldowns().isOnCooldown(uplinkStack)) {
+            // Tell the player why nothing happened instead of failing silently.
+            long leftTicks = COOLDOWN_END.getOrDefault(id, 0L) - player.level().getGameTime();
+            int secs = (int) Math.max(1, leftTicks / 20);
+            player.sendOverlayMessage(
+                    net.minecraft.network.chat.Component.literal("Uplink recharging: " + secs + "s"));
+            return false;
+        }
         // Only consume the armed stratagem on the success path.
         ARMED.remove(id);
 
@@ -97,6 +118,7 @@ public class StratagemManager {
         level.addFreshEntity(beacon);
 
         player.getCooldowns().addCooldown(uplinkStack, stratagem.cooldownTicks());
+        COOLDOWN_END.put(id, player.level().getGameTime() + stratagem.cooldownTicks());
         level.playSound(null, player.blockPosition(), SoundEvents.EGG_THROW, SoundSource.PLAYERS, 0.8F, 1.2F);
         return true;
     }
@@ -107,16 +129,23 @@ public class StratagemManager {
 
     public static void serverTick(MinecraftServer server) {
         if (QUEUE.isEmpty()) return;
+        // Tick down on the live list, but run due actions from a snapshot: a
+        // scheduled action that schedules another would otherwise trip a
+        // ConcurrentModificationException on the iterator.
+        List<DelayedAction> due = new ArrayList<>();
         Iterator<DelayedAction> it = QUEUE.iterator();
         while (it.hasNext()) {
             DelayedAction a = it.next();
             if (--a.ticksLeft <= 0) {
                 it.remove();
-                try {
-                    a.action.run();
-                } catch (Exception e) {
-                    Constants.LOG.warn("Stratagem delayed action failed", e);
-                }
+                due.add(a);
+            }
+        }
+        for (DelayedAction a : due) {
+            try {
+                a.action.run();
+            } catch (Exception e) {
+                Constants.LOG.warn("Stratagem delayed action failed", e);
             }
         }
     }
@@ -136,9 +165,58 @@ public class StratagemManager {
         level.explode(null, pos.x, pos.y + 0.5, pos.z, power, interaction);
     }
 
-    // Fired when a beacon's call-in countdown finishes.
+    // Fired when a beacon's call-in countdown finishes. The round is fired from
+    // the owner's Super Destroyer (look up and you can watch it come down);
+    // pods fall as supply pods, strikes as glowing shells. Effects that have
+    // no business coming from orbit (laser beam, heals, rearm, stim) apply
+    // directly. Each stratagem keeps its own call-in delay from the beacon.
     public static void triggerStrike(ServerLevel level, Vec3 pos, String stratagemId,
                                      double dirX, double dirZ, Entity owner) {
+        switch (stratagemId) {
+            case "orbital_laser", "m_reinforce", "m_rearm", "p_sh51" ->
+                    applyStrike(level, pos, stratagemId, dirX, dirZ, owner);
+            default -> {
+                Vec3 from = destroyerLaunchPos(owner);
+                if (from == null) {
+                    applyStrike(level, pos, stratagemId, dirX, dirZ, owner);
+                } else {
+                    launchShell(level, from, pos, stratagemId, isPodDelivery(stratagemId), dirX, dirZ, owner);
+                }
+            }
+        }
+    }
+
+    private static Vec3 destroyerLaunchPos(Entity owner) {
+        if (owner instanceof ServerPlayer sp) {
+            DestroyerEntity d = DestroyerManager.forOwner(sp.getUUID());
+            if (d != null) return d.position();
+        }
+        return null;
+    }
+
+    private static boolean isPodDelivery(String stratagemId) {
+        return stratagemId.startsWith("w_") || stratagemId.startsWith("s_")
+                || stratagemId.startsWith("v_") || stratagemId.startsWith("e_")
+                || (stratagemId.startsWith("p_") && !stratagemId.equals("p_sh51"))
+                || stratagemId.equals("m_resupply") || stratagemId.equals("m_hellbomb")
+                || stratagemId.equals("m_sos") || stratagemId.equals("m_flag");
+    }
+
+    private static void launchShell(ServerLevel level, Vec3 from, Vec3 target, String stratagemId,
+                                    boolean pod, double dirX, double dirZ, Entity owner) {
+        StrikeShellEntity shell = new StrikeShellEntity(ModEntities.STRIKE_SHELL.get(), level);
+        UUID ownerId = owner instanceof ServerPlayer sp ? sp.getUUID() : null;
+        shell.launch(from, target, stratagemId, pod, dirX, dirZ, ownerId);
+        level.addFreshEntity(shell);
+        // Incoming whistle at the target, muzzle flash up at the ship.
+        level.playSound(null, BlockPos.containing(target), SoundEvents.TNT_PRIMED,
+                SoundSource.BLOCKS, 0.8F, 0.5F);
+        level.sendParticles(ParticleTypes.FIREWORK, from.x, from.y - 3, from.z, 4, 2, 2, 2, 0.1);
+    }
+
+    // The stratagem's actual effect, played out where the shell/pod lands.
+    public static void applyStrike(ServerLevel level, Vec3 pos, String stratagemId,
+                                   double dirX, double dirZ, Entity owner) {
         Stratagem stratagem = StratagemRegistry.get(stratagemId);
         if (stratagem == null) return;
         Constants.LOG.info("Stratagem inbound: {} at {}", stratagem.name, BlockPos.containing(pos));

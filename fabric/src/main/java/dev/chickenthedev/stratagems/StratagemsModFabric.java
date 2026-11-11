@@ -4,6 +4,7 @@ import dev.chickenthedev.stratagems.network.ArmStratagemPayload;
 import dev.chickenthedev.stratagems.platform.FabricRegistryHelper;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -42,6 +43,13 @@ public class StratagemsModFabric implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             StratagemManager.serverTick(server);
             DestroyerManager.serverTick(server);
+        });
+
+        // Single-player shares one JVM across worlds: drop per-world static
+        // state on server stop so it can't leak into the next world.
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            StratagemManager.clearServerState();
+            DestroyerManager.clearServerState();
         });
     }
 }

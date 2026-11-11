@@ -20,7 +20,9 @@ public class StratagemUplinkItem extends Item {
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
         if (level instanceof ServerLevel && player instanceof ServerPlayer serverPlayer) {
-            return StratagemManager.tryThrow(serverPlayer) ? InteractionResult.SUCCESS : InteractionResult.FAIL;
+            // PASS (not FAIL) on a failed throw: nothing happened, so don't
+            // make the client snap back its predicted hand swing.
+            return StratagemManager.tryThrow(serverPlayer) ? InteractionResult.SUCCESS : InteractionResult.PASS;
         }
         return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
     }

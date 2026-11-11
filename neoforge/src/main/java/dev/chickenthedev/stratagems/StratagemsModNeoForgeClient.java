@@ -67,6 +67,7 @@ public class StratagemsModNeoForgeClient {
 
         modBus.addListener((EntityRenderersEvent.RegisterRenderers event) -> {
             event.registerEntityRenderer(ModEntities.BEACON.get(), ThrownItemRenderer::new);
+            event.registerEntityRenderer(ModEntities.STRIKE_SHELL.get(), ThrownItemRenderer::new);
             event.registerEntityRenderer(ModEntities.SHIELD_DOME.get(), NoOpRenderer::new);
             event.registerEntityRenderer(ModEntities.DESTROYER.get(), DestroyerRenderer::new);
             event.registerEntityRenderer(ModEntities.SENTRY.get(), SentryRenderer::new);
