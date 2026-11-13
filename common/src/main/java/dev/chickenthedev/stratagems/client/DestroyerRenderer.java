@@ -65,7 +65,7 @@ public class DestroyerRenderer extends EntityRenderer<DestroyerEntity, Destroyer
         float swayPitch = (float) Math.sin(state.age * 0.03 + 1.0F) * 0.02F;
         poseStack.rotate(Axis.YP, swayYaw);
         poseStack.rotate(Axis.XP, swayPitch);
-        poseStack.scale(12.0F, 12.0F, 12.0F);
+        poseStack.scale(1.8F, 1.8F, 1.8F);
 
         // Spinning radar bar.
         model.radar().yRot = state.age * 0.1F;
