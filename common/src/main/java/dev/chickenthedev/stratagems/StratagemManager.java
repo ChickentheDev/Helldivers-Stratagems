@@ -22,6 +22,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.equine.Horse;
 import net.minecraft.world.entity.animal.equine.Mule;
 import net.minecraft.world.entity.animal.golem.IronGolem;
@@ -163,6 +164,53 @@ public class StratagemManager {
                 ? Level.ExplosionInteraction.TNT
                 : Level.ExplosionInteraction.NONE;
         level.explode(null, pos.x, pos.y + 0.5, pos.z, power, interaction);
+        realisticBlast(level, pos, power);
+    }
+
+    // A layered, realistic explosion on top of the vanilla blast: white flash,
+    // fireball, rising smoke column, an expanding shockwave ring and a deep
+    // delayed rumble. Scales with power so small shells stay small.
+    private static void realisticBlast(ServerLevel level, Vec3 pos, float power) {
+        double y = pos.y + 0.5;
+        // 1. Blinding flash at the core.
+        level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, pos.x, y, pos.z, power >= 8 ? 3 : 1, 0.5, 0.5, 0.5, 0);
+        // 2. Fireball: hot core + embers.
+        int flame = Math.min(200, Math.round(power * 8));
+        level.sendParticles(ParticleTypes.FLAME, pos.x, y, pos.z, flame,
+                power * 0.35, power * 0.3, power * 0.35, 0.25);
+        level.sendParticles(ParticleTypes.LAVA, pos.x, y, pos.z,
+                Math.min(60, Math.round(power)), power * 0.3, power * 0.25, power * 0.3, 0.2);
+        // 3. Deep boom + delayed rumble.
+        level.playSound(null, BlockPos.containing(pos), SoundEvents.GENERIC_EXPLODE.value(),
+                SoundSource.BLOCKS, Math.min(2.0F, 0.6F + power / 10.0F), 0.55F);
+        schedule(level, 12, () -> level.playSound(null, BlockPos.containing(pos),
+                SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 1.2F, 0.32F));
+        if (power < 3) return;
+        // 4. Rising smoke column (scheduled puffs climbing away from the blast).
+        int puffs = power >= 8 ? 4 : 2;
+        for (int i = 0; i < puffs; i++) {
+            final double py = y + 2 + i * 2.5;
+            final int delay = i * 6;
+            schedule(level, delay, () -> {
+                level.sendParticles(ParticleTypes.LARGE_SMOKE, pos.x, py, pos.z,
+                        12, 1.2, 0.8, 1.2, 0.08);
+                level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, pos.x, py, pos.z,
+                        8, 1.0, 0.6, 1.0, 0.06);
+            });
+        }
+        // 5. Expanding shockwave ring at ground level.
+        if (power >= 5) {
+            final double ringR = power * 1.1;
+            schedule(level, 3, () -> {
+                for (int i = 0; i < 28; i++) {
+                    double a = i * Math.PI * 2 / 28;
+                    double rx = pos.x + Math.cos(a) * ringR;
+                    double rz = pos.z + Math.sin(a) * ringR;
+                    level.sendParticles(ParticleTypes.SMOKE, rx, y + 0.3, rz, 2, 0.2, 0.2, 0.2, 0.02);
+                    level.sendParticles(ParticleTypes.EXPLOSION, rx, y + 0.3, rz, 1, 0.1, 0.1, 0.1, 0);
+                }
+            });
+        }
     }
 
     // Fired when a beacon's call-in countdown finishes. The round is fired from
@@ -226,41 +274,41 @@ public class StratagemManager {
         switch (stratagemId) {
             // ---- Orbital Strikes ----
             case "orbital_precision_strike" -> {
-                detonate(level, pos, 10.0F);
+                detonate(level, pos, 15.0F);
                 level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, pos.x, pos.y + 1, pos.z, 3, 1, 1, 1, 0);
             }
-            case "orbital_gatling_barrage" -> barrage(level, pos, 14, 2.5F, 10, 10, 6);
+            case "orbital_gatling_barrage" -> barrage(level, pos, 21, 4.0F, 14, 8, 5);
             case "orbital_gas_strike" -> lingeringCloud(level, pos, ParticleTypes.HAPPY_VILLAGER,
-                    20, 5, 2.0F, new MobEffectInstance(MobEffects.POISON, 120, 1));
-            case "orbital_120mm" -> barrage(level, pos, 24, 4.0F, 14, 8, 6);
+                    30, 7, 4.0F, new MobEffectInstance(MobEffects.POISON, 120, 1));
+            case "orbital_120mm" -> barrage(level, pos, 36, 6.0F, 20, 6, 5);
             case "orbital_airburst" -> airburst(level, pos);
             case "orbital_smoke" -> lingeringCloud(level, pos, ParticleTypes.LARGE_SMOKE,
-                    25, 7, 0, null);
+                    35, 9, 0, null);
             case "orbital_ems" -> lingeringCloud(level, pos, ParticleTypes.ELECTRIC_SPARK,
-                    20, 6, 0, new MobEffectInstance(MobEffects.SLOWNESS, 200, 2));
-            case "orbital_380mm" -> barrage(level, pos, 30, 6.0F, 18, 10, 8);
+                    30, 8, 0, new MobEffectInstance(MobEffects.SLOWNESS, 200, 2));
+            case "orbital_380mm" -> barrage(level, pos, 45, 9.0F, 25, 8, 6);
             case "orbital_walking" -> walkingBarrage(level, pos, dirX, dirZ);
             case "orbital_laser" -> orbitalLaser(level, pos);
-            case "orbital_napalm" -> napalmBarrage(level, pos, 20, 14);
+            case "orbital_napalm" -> napalmBarrage(level, pos, 30, 18);
             case "orbital_railcannon" -> {
-                detonate(level, pos, 16.0F);
+                detonate(level, pos, 24.0F);
                 level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, pos.x, pos.y + 1, pos.z, 6, 2, 2, 2, 0);
                 level.sendParticles(ParticleTypes.END_ROD, pos.x, pos.y + 10, pos.z, 40, 1, 10, 1, 0.1);
             }
 
             // ---- Eagle Strikes ----
-            case "eagle_strafing" -> strikeLine(level, pos, dirX, dirZ, true, 8, 2.5F, 6, 6, false);
-            case "eagle_airstrike" -> strikeLine(level, pos, dirX, dirZ, false, 6, 5.0F, 7, 10, false);
-            case "eagle_cluster" -> barrage(level, pos, 30, 2.0F, 16, 4, 4);
+            case "eagle_strafing" -> strikeLine(level, pos, dirX, dirZ, true, 8, 4.0F, 6, 6, false);
+            case "eagle_airstrike" -> strikeLine(level, pos, dirX, dirZ, false, 6, 7.5F, 7, 10, false);
+            case "eagle_cluster" -> barrage(level, pos, 45, 3.0F, 22, 3, 3);
             case "eagle_smoke" -> lingeringCloud(level, pos, ParticleTypes.LARGE_SMOKE, 20, 6, 0, null);
-            case "eagle_napalm" -> strikeLine(level, pos, dirX, dirZ, false, 6, 3.5F, 7, 10, true);
-            case "eagle_rockets" -> strikeLine(level, pos, dirX, dirZ, true, 6, 4.0F, 5, 8, false);
+            case "eagle_napalm" -> strikeLine(level, pos, dirX, dirZ, false, 6, 5.0F, 7, 10, true);
+            case "eagle_rockets" -> strikeLine(level, pos, dirX, dirZ, true, 6, 6.0F, 5, 8, false);
             case "eagle_500kg" -> {
-                detonate(level, pos, 18.0F);
+                detonate(level, pos, 27.0F);
                 level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, pos.x, pos.y + 1, pos.z, 8, 2, 2, 2, 0);
             }
             case "eagle_gas" -> lingeringCloud(level, pos, ParticleTypes.HAPPY_VILLAGER,
-                    18, 5, 2.0F, new MobEffectInstance(MobEffects.POISON, 120, 1));
+                    27, 7, 4.0F, new MobEffectInstance(MobEffects.POISON, 120, 1));
 
             // ---- Support Weapons (hellpod with the weapon) ----
             case "w_mg43" -> weaponPod(level, pos,
@@ -352,7 +400,7 @@ public class StratagemManager {
                 level.playSound(null, BlockPos.containing(pos), SoundEvents.TNT_PRIMED,
                         SoundSource.BLOCKS, 1.0F, 0.7F);
                 schedule(level, 100, () -> {
-                    detonate(level, pos, 20.0F);
+                    detonate(level, pos, 45.0F);
                     level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, pos.x, pos.y + 1, pos.z, 10, 3, 3, 3, 0);
                 });
             }
@@ -381,13 +429,13 @@ public class StratagemManager {
             case "s_gas" -> deploySentry(level, pos, "gas");
 
             // ---- Emplacements ----
-            case "e_mines_ap" -> minefield(level, pos, 10, false, false);
-            case "e_mines_fire" -> minefield(level, pos, 8, true, false);
-            case "e_mines_at" -> minefield(level, pos, 6, false, false);
+            case "e_mines_ap" -> minefield(level, pos, 15, false, false);
+            case "e_mines_fire" -> minefield(level, pos, 12, true, false);
+            case "e_mines_at" -> minefield(level, pos, 9, false, false);
             case "e_shield" -> shieldDome(level, pos);
             case "e_hmg" -> deploySentry(level, pos, "hmg");
             case "e_grenadier" -> deploySentry(level, pos, "grenadier");
-            case "e_mines_gas" -> minefield(level, pos, 8, false, true);
+            case "e_mines_gas" -> minefield(level, pos, 12, false, true);
             case "e_at" -> deploySentry(level, pos, "at");
 
             // ---- Mission ----
@@ -398,14 +446,14 @@ public class StratagemManager {
                 level.sendParticles(ParticleTypes.SMOKE, pos.x, pos.y + 1, pos.z, 60, 2, 2, 2, 0.1);
                 level.playSound(null, BlockPos.containing(pos), SoundEvents.TNT_PRIMED,
                         SoundSource.BLOCKS, 1.0F, 0.5F);
-                schedule(level, 40, () -> {
-                    detonate(level, pos, 30.0F);
+                schedule(level, 25, () -> {
+                    detonate(level, pos, 45.0F);
                     level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, pos.x, pos.y + 1, pos.z, 16, 4, 4, 4, 0);
                 });
+                schedule(level, 40, () -> detonate(level,
+                        new Vec3(pos.x + 6, pos.y, pos.z - 4), 18.0F));
                 schedule(level, 55, () -> detonate(level,
-                        new Vec3(pos.x + 6, pos.y, pos.z - 4), 12.0F));
-                schedule(level, 70, () -> detonate(level,
-                        new Vec3(pos.x - 5, pos.y, pos.z + 6), 12.0F));
+                        new Vec3(pos.x - 5, pos.y, pos.z + 6), 18.0F));
             }
             case "m_rearm" -> {
                 if (owner instanceof ServerPlayer sp) {
@@ -414,7 +462,7 @@ public class StratagemManager {
                             SoundSource.PLAYERS, 1.0F, 1.4F);
                 }
             }
-            case "m_seaf" -> barrage(level, pos, 16, 5.0F, 14, 12, 8);
+            case "m_seaf" -> barrage(level, pos, 24, 7.5F, 20, 9, 6);
             case "m_flag" -> superEarthFlag(level, pos, owner);
 
             default -> Constants.LOG.warn("Unknown stratagem id: {}", stratagemId);
@@ -457,19 +505,19 @@ public class StratagemManager {
         double len = Math.sqrt(dirX * dirX + dirZ * dirZ);
         double dx = len > 0.01 ? dirX / len : 0;
         double dz = len > 0.01 ? dirZ / len : 1;
-        for (int i = 0; i < 8; i++) {
-            double dist = (i - 3.5) * 9.0;
+        for (int i = 0; i < 12; i++) {
+            double dist = (i - 5.5) * 9.0;
             Vec3 target = new Vec3(pos.x + dx * dist, pos.y, pos.z + dz * dist);
             schedule(level, i * 25, () -> {
                 level.playSound(null, BlockPos.containing(target), SoundEvents.GENERIC_EXPLODE.value(),
                         SoundSource.BLOCKS, 1.2F, 0.7F);
-                detonate(level, target, 6.0F);
+                detonate(level, target, 9.0F);
             });
         }
     }
 
     private static void orbitalLaser(ServerLevel level, Vec3 pos) {
-        for (int t = 0; t < 400; t += 10) {
+        for (int t = 0; t < 600; t += 10) {
             double angle = t * 0.08;
             Vec3 target = new Vec3(pos.x + Math.cos(angle) * 2.5, pos.y, pos.z + Math.sin(angle) * 2.5);
             int tick = t;
@@ -478,7 +526,7 @@ public class StratagemManager {
                         target.x + 3, target.y + 40, target.z + 3);
                 for (LivingEntity e : level.getEntities(EntityTypeTest.forClass(LivingEntity.class),
                         box, LivingEntity::isAlive)) {
-                    e.hurtServer(level, e.damageSources().magic(), 10.0F);
+                    e.hurtServer(level, e.damageSources().magic(), 20.0F);
                 }
                 level.sendParticles(ParticleTypes.END_ROD, target.x, target.y + 10, target.z,
                         30, 0.5, 10, 0.5, 0.05);
@@ -516,8 +564,8 @@ public class StratagemManager {
             Vec3 target = new Vec3(pos.x + Math.cos(angle) * dist, pos.y, pos.z + Math.sin(angle) * dist);
             int delay = i * 12 + level.getRandom().nextInt(8);
             schedule(level, delay, () -> {
-                detonate(level, target, 3.5F);
-                igniteNear(level, target, 4, 6);
+                detonate(level, target, 5.0F);
+                igniteNear(level, target, 6, 8);
                 level.sendParticles(ParticleTypes.FLAME, target.x, target.y + 1, target.z,
                         25, 2, 1, 2, 0.1);
             });
@@ -525,13 +573,13 @@ public class StratagemManager {
     }
 
     private static void airburst(ServerLevel level, Vec3 pos) {
-        for (int i = 0; i < 12; i++) {
+        for (int i = 0; i < 18; i++) {
             double angle = level.getRandom().nextDouble() * Math.PI * 2;
-            double dist = level.getRandom().nextDouble() * 12;
+            double dist = level.getRandom().nextDouble() * 16;
             Vec3 target = new Vec3(pos.x + Math.cos(angle) * dist, pos.y + 5 + level.getRandom().nextDouble() * 3,
                     pos.z + Math.sin(angle) * dist);
             schedule(level, i * 8, () -> {
-                detonate(level, target, 3.0F);
+                detonate(level, target, 4.5F);
                 level.sendParticles(ParticleTypes.FIREWORK, target.x, target.y, target.z,
                         12, 1, 1, 1, 0.15);
             });
@@ -578,7 +626,7 @@ public class StratagemManager {
             }
         }
         if (gas) {
-            lingeringCloud(level, pos, ParticleTypes.HAPPY_VILLAGER, 15, 8, 1.0F,
+            lingeringCloud(level, pos, ParticleTypes.HAPPY_VILLAGER, 22, 10, 2.0F,
                     new MobEffectInstance(MobEffects.POISON, 100, 1));
         }
         level.playSound(null, BlockPos.containing(pos), SoundEvents.ANVIL_LAND,
@@ -609,15 +657,15 @@ public class StratagemManager {
     private static void dropSupplies(ServerLevel level, Vec3 pos) {
         List<ItemStack> pool = new ArrayList<>();
         ItemStack[] candidates = {
-                new ItemStack(Items.GOLDEN_APPLE, 3),
-                new ItemStack(Items.ARROW, 32),
-                new ItemStack(Items.COOKED_BEEF, 12),
-                new ItemStack(Items.IRON_INGOT, 10),
-                new ItemStack(Items.TNT, 8),
-                new ItemStack(Items.ENDER_PEARL, 2),
-                new ItemStack(Items.DIAMOND, 2),
-                new ItemStack(Items.EXPERIENCE_BOTTLE, 16),
-                new ItemStack(Items.TOTEM_OF_UNDYING, 1),
+                new ItemStack(Items.GOLDEN_APPLE, 6),
+                new ItemStack(Items.ARROW, 64),
+                new ItemStack(Items.COOKED_BEEF, 24),
+                new ItemStack(Items.IRON_INGOT, 20),
+                new ItemStack(Items.TNT, 16),
+                new ItemStack(Items.ENDER_PEARL, 4),
+                new ItemStack(Items.DIAMOND, 4),
+                new ItemStack(Items.EXPERIENCE_BOTTLE, 32),
+                new ItemStack(Items.TOTEM_OF_UNDYING, 2),
         };
         for (ItemStack stack : candidates) {
             if (level.getRandom().nextFloat() < 0.75f) pool.add(stack);
@@ -629,6 +677,9 @@ public class StratagemManager {
         Wolf wolf = new Wolf(entityType("wolf"), level);
         wolf.setPos(pos.x, pos.y + 0.5, pos.z);
         if (owner instanceof ServerPlayer sp) wolf.tame(sp);
+        wolf.getAttribute(Attributes.MAX_HEALTH).setBaseValue(40.0);
+        wolf.setHealth(40.0F);
+        wolf.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(8.0);
         level.addFreshEntity(wolf);
         level.sendParticles(ParticleTypes.CLOUD, pos.x, pos.y + 1, pos.z, 20, 0.8, 0.8, 0.8, 0.05);
         level.playSound(null, BlockPos.containing(pos), SoundEvents.WOLF_SHAKE,
