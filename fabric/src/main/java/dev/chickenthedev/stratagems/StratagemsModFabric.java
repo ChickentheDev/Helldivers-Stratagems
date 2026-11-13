@@ -1,6 +1,7 @@
 package dev.chickenthedev.stratagems;
 
 import dev.chickenthedev.stratagems.network.ArmStratagemPayload;
+import dev.chickenthedev.stratagems.network.SetLoadoutPayload;
 import dev.chickenthedev.stratagems.platform.FabricRegistryHelper;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
@@ -32,13 +33,20 @@ public class StratagemsModFabric implements ModInitializer {
                         .icon(() -> new ItemStack(ModItems.UPLINK.get()))
                         .title(Component.translatable("itemGroup.stratagems"))
                         .build());
-        CreativeModeTabEvents.modifyOutputEvent(stratagemsTab).register(output ->
-                output.accept(ModItems.UPLINK.get()));
+        CreativeModeTabEvents.modifyOutputEvent(stratagemsTab).register(output -> {
+            output.accept(ModItems.UPLINK.get());
+            output.accept(ModItems.LOADOUT.get());
+        });
 
         PayloadTypeRegistry.serverboundPlay().register(ArmStratagemPayload.TYPE, ArmStratagemPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(ArmStratagemPayload.TYPE,
                 (payload, context) -> context.server().execute(() ->
-                        StratagemManager.setArmed(context.player().getUUID(), payload.stratagemId())));
+                        StratagemManager.tryArm(context.player(), payload.stratagemId())));
+
+        PayloadTypeRegistry.serverboundPlay().register(SetLoadoutPayload.TYPE, SetLoadoutPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(SetLoadoutPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        StratagemManager.setLoadout(context.player(), payload.stratagemIds())));
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             StratagemManager.serverTick(server);

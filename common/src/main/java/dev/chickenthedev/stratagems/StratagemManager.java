@@ -75,6 +75,42 @@ public class StratagemManager {
         }
     }
 
+    // Arm a stratagem, but only if it is in the player's equipped loadout and
+    // they actually have an uplink in their inventory. A forged packet for a
+    // stratagem outside the loadout is logged and ignored.
+    public static boolean tryArm(ServerPlayer player, String stratagemId) {
+        Stratagem stratagem = StratagemRegistry.get(stratagemId);
+        if (stratagem == null) return false;
+        ItemStack uplink = StratagemLoadout.findUplink(player);
+        if (uplink == null) {
+            Constants.LOG.warn("Player {} tried to arm {} without an uplink in inventory",
+                    player.getName().getString(), stratagemId);
+            return false;
+        }
+        if (!StratagemLoadout.get(uplink).contains(stratagemId)) {
+            Constants.LOG.warn("Player {} tried to arm {} which is not in their loadout",
+                    player.getName().getString(), stratagemId);
+            return false;
+        }
+        ARMED.put(player.getUUID(), stratagemId);
+        return true;
+    }
+
+    // Write a confirmed loadout onto the player's uplink and push the updated
+    // stack to the client so the HUD refreshes.
+    public static void setLoadout(ServerPlayer player, List<String> ids) {
+        ItemStack uplink = StratagemLoadout.findUplink(player);
+        if (uplink == null) {
+            Constants.LOG.warn("Player {} sent a loadout without an uplink in inventory",
+                    player.getName().getString());
+            return;
+        }
+        StratagemLoadout.set(uplink, ids);
+        player.containerMenu.broadcastChanges();
+        Constants.LOG.info("Player {} equipped loadout {}",
+                player.getName().getString(), StratagemLoadout.get(uplink));
+    }
+
     public static void clearArmed(UUID playerId) {
         ARMED.remove(playerId);
         COOLDOWN_END.remove(playerId);

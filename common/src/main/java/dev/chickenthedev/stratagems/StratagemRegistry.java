@@ -253,9 +253,27 @@ public class StratagemRegistry {
         return null;
     }
 
+    /** Full match restricted to the equipped loadout: only those 4 can be armed. */
+    public static Stratagem findFullMatchIn(List<String> loadout, List<Direction> input) {
+        for (String id : loadout) {
+            Stratagem s = STRATAGEMS.get(id);
+            if (s != null && s.matches(input)) return s;
+        }
+        return null;
+    }
+
     public static boolean hasAnyPrefix(List<Direction> input) {
         for (Stratagem s : STRATAGEMS.values()) {
             if (s.hasPrefix(input)) return true;
+        }
+        return false;
+    }
+
+    /** Prefix check restricted to the equipped loadout, so a wrong key clears the buffer. */
+    public static boolean hasAnyPrefixIn(List<String> loadout, List<Direction> input) {
+        for (String id : loadout) {
+            Stratagem s = STRATAGEMS.get(id);
+            if (s != null && s.hasPrefix(input)) return true;
         }
         return false;
     }

@@ -5,9 +5,12 @@ import dev.chickenthedev.stratagems.client.DestroyerModel;
 import dev.chickenthedev.stratagems.client.SentryModel;
 import dev.chickenthedev.stratagems.client.SentryRenderer;
 import dev.chickenthedev.stratagems.client.DestroyerRenderer;
+import dev.chickenthedev.stratagems.client.LoadoutScreen;
 import dev.chickenthedev.stratagems.client.NoOpRenderer;
 import dev.chickenthedev.stratagems.client.StratagemHud;
+import dev.chickenthedev.stratagems.item.StratagemLoadoutItem;
 import dev.chickenthedev.stratagems.network.ArmStratagemPayload;
+import dev.chickenthedev.stratagems.network.SetLoadoutPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -47,6 +50,9 @@ public class StratagemsModFabricClient implements ClientModInitializer {
                 new KeyMapping("key.stratagems.right", InputConstants.Type.KEYBOARD, GLFW.GLFW_KEY_RIGHT, CATEGORY));
 
         ClientStratagemInput.init(id -> ClientPlayNetworking.send(new ArmStratagemPayload(id)));
+        ClientStratagemInput.initLoadout(ids -> ClientPlayNetworking.send(new SetLoadoutPayload(ids)));
+        StratagemLoadoutItem.screenOpener = ids ->
+                net.minecraft.client.Minecraft.getInstance().gui.setScreen(new LoadoutScreen(ids));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (uplinkKey.consumeClick()) {

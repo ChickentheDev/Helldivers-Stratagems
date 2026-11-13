@@ -5,9 +5,12 @@ import dev.chickenthedev.stratagems.client.DestroyerModel;
 import dev.chickenthedev.stratagems.client.SentryModel;
 import dev.chickenthedev.stratagems.client.SentryRenderer;
 import dev.chickenthedev.stratagems.client.DestroyerRenderer;
+import dev.chickenthedev.stratagems.client.LoadoutScreen;
 import dev.chickenthedev.stratagems.client.NoOpRenderer;
 import dev.chickenthedev.stratagems.client.StratagemHud;
+import dev.chickenthedev.stratagems.item.StratagemLoadoutItem;
 import dev.chickenthedev.stratagems.network.ArmStratagemPayload;
+import dev.chickenthedev.stratagems.network.SetLoadoutPayload;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.KeyMapping.Category;
@@ -35,6 +38,9 @@ public class StratagemsModNeoForgeClient {
 
     public static void init(IEventBus modBus) {
         ClientStratagemInput.init(id -> ClientPacketDistributor.sendToServer(new ArmStratagemPayload(id)));
+        ClientStratagemInput.initLoadout(ids -> ClientPacketDistributor.sendToServer(new SetLoadoutPayload(ids)));
+        StratagemLoadoutItem.screenOpener = ids ->
+                net.minecraft.client.Minecraft.getInstance().gui.setScreen(new LoadoutScreen(ids));
 
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             uplinkKey = new KeyMapping("key.stratagems.uplink", InputConstants.Type.KEYBOARD, GLFW.GLFW_KEY_G, CATEGORY);

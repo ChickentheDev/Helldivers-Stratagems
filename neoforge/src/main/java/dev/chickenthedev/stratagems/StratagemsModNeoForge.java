@@ -1,8 +1,10 @@
 package dev.chickenthedev.stratagems;
 
 import dev.chickenthedev.stratagems.network.ArmStratagemPayload;
+import dev.chickenthedev.stratagems.network.SetLoadoutPayload;
 import dev.chickenthedev.stratagems.platform.NeoForgeRegistryHelper;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
@@ -40,6 +42,7 @@ public class StratagemsModNeoForge {
         modBus.addListener((BuildCreativeModeTabContentsEvent event) -> {
             if (MAIN_TAB.getKey().equals(event.getTabKey())) {
                 event.accept(ModItems.UPLINK.get());
+                event.accept(ModItems.LOADOUT.get());
             }
         });
 
@@ -47,7 +50,10 @@ public class StratagemsModNeoForge {
             PayloadRegistrar registrar = event.registrar(Constants.MOD_ID);
             registrar.playToServer(ArmStratagemPayload.TYPE, ArmStratagemPayload.CODEC,
                     (payload, context) -> context.enqueueWork(() ->
-                            StratagemManager.setArmed(context.player().getUUID(), payload.stratagemId())));
+                            StratagemManager.tryArm((ServerPlayer) context.player(), payload.stratagemId())));
+            registrar.playToServer(SetLoadoutPayload.TYPE, SetLoadoutPayload.CODEC,
+                    (payload, context) -> context.enqueueWork(() ->
+                            StratagemManager.setLoadout((ServerPlayer) context.player(), payload.stratagemIds())));
         });
 
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> {

@@ -4,6 +4,7 @@ import dev.chickenthedev.stratagems.Constants;
 import dev.chickenthedev.stratagems.Direction;
 import dev.chickenthedev.stratagems.ModItems;
 import dev.chickenthedev.stratagems.Stratagem;
+import dev.chickenthedev.stratagems.StratagemLoadout;
 import dev.chickenthedev.stratagems.StratagemRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -15,16 +16,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-// Client-only. Handles stratagem code entry: press the stratagem keybind while
-// holding the uplink to open code mode, tap arrow keys to enter the code, and a
-// full match arms the stratagem (synced to the server via packet).
+// Client-only. Handles stratagem code entry: press the stratagem keybind with
+// the uplink anywhere in the inventory to open code mode, tap arrow keys to
+// enter the code, and a full match arms the stratagem (synced to the server
+// via packet). Only the 4 equipped stratagems can be armed.
 public class ClientStratagemInput {
 
     private static final long CODE_MODE_TIMEOUT_MS = 6000;
 
     private static Consumer<String> armSender;
+    private static Consumer<List<String>> loadoutSender;
     private static boolean codeMode = false;
     private static final List<Direction> buffer = new ArrayList<>();
+    private static List<String> activeLoadout = List.of();
     private static long lastInputMs = 0;
     private static String armedDisplay = null;
     private static Component hint = null;
@@ -35,7 +39,16 @@ public class ClientStratagemInput {
         armSender = sender;
     }
 
-    /** Transient hint shown on the HUD (e.g. after pressing G without the uplink held). */
+    public static void initLoadout(Consumer<List<String>> sender) {
+        loadoutSender = sender;
+    }
+
+    /** Send a confirmed 4-stratagem loadout to the server. */
+    public static void sendLoadout(List<String> ids) {
+        if (loadoutSender != null) loadoutSender.accept(ids);
+    }
+
+    /** Transient hint shown on the HUD (e.g. after pressing G without the uplink). */
     public static Component getHint() {
         if (hint != null && System.currentTimeMillis() < hintUntilMs) return hint;
         hint = null;
@@ -54,12 +67,12 @@ public class ClientStratagemInput {
         return armedDisplay;
     }
 
-    private static boolean holdingUplink() {
+    /** The uplink anywhere in the inventory (hotbar, main, or offhand) — it no
+     * longer needs to be held to open code mode. The throw still needs it held. */
+    public static boolean hasUplink() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return false;
-        ItemStack main = mc.player.getMainHandItem();
-        ItemStack off = mc.player.getOffhandItem();
-        return main.getItem() == ModItems.UPLINK.get() || off.getItem() == ModItems.UPLINK.get();
+        return StratagemLoadout.findUplink(mc.player) != null;
     }
 
     private static void blip(float pitch) {
@@ -76,13 +89,14 @@ public class ClientStratagemInput {
             exitCodeMode();
             return;
         }
-        if (!holdingUplink()) {
+        if (!hasUplink()) {
             hint = Component.translatable("message.stratagems.hold_uplink");
             hintUntilMs = System.currentTimeMillis() + 2500;
             return;
         }
         codeMode = true;
         buffer.clear();
+        activeLoadout = StratagemLoadout.get(StratagemLoadout.findUplink(mc.player));
         lastInputMs = System.currentTimeMillis();
         blip(1.0F);
     }
@@ -98,7 +112,7 @@ public class ClientStratagemInput {
         lastInputMs = System.currentTimeMillis();
         blip(0.9F + 0.1F * buffer.size());
 
-        Stratagem match = StratagemRegistry.findFullMatch(buffer);
+        Stratagem match = StratagemRegistry.findFullMatchIn(activeLoadout, buffer);
         if (match != null) {
             armedDisplay = match.name;
             if (armSender != null) armSender.accept(match.id);
@@ -108,7 +122,7 @@ public class ClientStratagemInput {
             Constants.LOG.debug("Armed stratagem: {}", match.id);
             return;
         }
-        if (!StratagemRegistry.hasAnyPrefix(buffer)) {
+        if (!StratagemRegistry.hasAnyPrefixIn(activeLoadout, buffer)) {
             buffer.clear();
             Minecraft.getInstance().getSoundManager()
                     .play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_BASS, 0.8F));
@@ -132,7 +146,7 @@ public class ClientStratagemInput {
         }
         lastDimension = dim;
         if (codeMode) {
-            if (!holdingUplink() || mc.gui.screen() != null
+            if (!hasUplink() || mc.gui.screen() != null
                     || System.currentTimeMillis() - lastInputMs > CODE_MODE_TIMEOUT_MS) {
                 exitCodeMode();
             }
@@ -147,5 +161,6 @@ public class ClientStratagemInput {
     private static void exitCodeMode() {
         codeMode = false;
         buffer.clear();
+        activeLoadout = List.of();
     }
 }

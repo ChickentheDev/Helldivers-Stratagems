@@ -2,12 +2,19 @@ package dev.chickenthedev.stratagems.client;
 
 import dev.chickenthedev.stratagems.Direction;
 import dev.chickenthedev.stratagems.ModItems;
+import dev.chickenthedev.stratagems.Stratagem;
+import dev.chickenthedev.stratagems.StratagemLoadout;
+import dev.chickenthedev.stratagems.StratagemRegistry;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
 
-// Client-only. Draws the stratagem code-entry panel and the armed indicator.
+import java.util.List;
+
+// Client-only. Draws the top-left loadout list (the 4 equipped stratagems
+// with their arrow codes, whenever the uplink is anywhere in the inventory),
+// the stratagem code-entry panel, and the armed indicator.
 public class StratagemHud {
 
     private static final int YELLOW = 0xFFFFD500;
@@ -24,9 +31,14 @@ public class StratagemHud {
                     graphics.guiHeight() - 60, YELLOW);
         }
 
+        ItemStack uplink = StratagemLoadout.findUplink(mc.player);
+        if (uplink != null) {
+            renderLoadoutList(graphics, mc, uplink);
+        }
+
         if (ClientStratagemInput.isCodeMode()) {
             renderCodePanel(graphics, mc);
-        } else if (holdingUplink(mc)) {
+        } else if (uplink != null) {
             String armed = ClientStratagemInput.getArmedDisplay();
             int cx = graphics.guiWidth() / 2;
             if (armed != null) {
@@ -39,14 +51,31 @@ public class StratagemHud {
         }
     }
 
-    private static void centeredText(GuiGraphicsExtractor graphics, Minecraft mc, String text, int cx, int y, int color) {
-        graphics.text(mc.font, text, cx - mc.font.width(text) / 2, y, color);
+    // Top-left: header + one row per equipped stratagem (code glyphs + name).
+    // The armed one is yellow; all rows dim while the uplink is recharging
+    // (the uplink carries one shared cooldown for every stratagem).
+    private static void renderLoadoutList(GuiGraphicsExtractor graphics, Minecraft mc, ItemStack uplink) {
+        List<String> loadout = StratagemLoadout.get(uplink);
+        String armed = ClientStratagemInput.getArmedDisplay();
+        boolean cooling = onCooldown(mc);
+        int x = 8;
+        int y = 8;
+        graphics.text(mc.font, "STRATAGEMS", x, y, YELLOW);
+        y += 11;
+        for (String id : loadout) {
+            Stratagem s = StratagemRegistry.get(id);
+            if (s == null) continue;
+            int color = cooling ? DIM : (s.name.equals(armed) ? YELLOW : WHITE);
+            graphics.text(mc.font, s.codeString() + "  " + s.name, x, y, color);
+            y += 11;
+        }
+        if (cooling) {
+            graphics.text(mc.font, "Recharging...", x, y, DIM);
+        }
     }
 
-    private static boolean holdingUplink(Minecraft mc) {
-        ItemStack main = mc.player.getMainHandItem();
-        ItemStack off = mc.player.getOffhandItem();
-        return main.getItem() == ModItems.UPLINK.get() || off.getItem() == ModItems.UPLINK.get();
+    private static void centeredText(GuiGraphicsExtractor graphics, Minecraft mc, String text, int cx, int y, int color) {
+        graphics.text(mc.font, text, cx - mc.font.width(text) / 2, y, color);
     }
 
     private static boolean onCooldown(Minecraft mc) {
