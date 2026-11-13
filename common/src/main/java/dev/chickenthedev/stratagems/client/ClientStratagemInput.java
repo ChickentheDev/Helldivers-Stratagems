@@ -31,6 +31,7 @@ public class ClientStratagemInput {
     private static List<String> activeLoadout = List.of();
     private static long lastInputMs = 0;
     private static String armedDisplay = null;
+    private static String armedId = null;
     private static Component hint = null;
     private static long hintUntilMs = 0;
     private static net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> lastDimension = null;
@@ -115,6 +116,7 @@ public class ClientStratagemInput {
         Stratagem match = StratagemRegistry.findFullMatchIn(activeLoadout, buffer);
         if (match != null) {
             armedDisplay = match.name;
+            armedId = match.id;
             if (armSender != null) armSender.accept(match.id);
             exitCodeMode();
             Minecraft.getInstance().getSoundManager()
@@ -136,6 +138,8 @@ public class ClientStratagemInput {
             // Logged out / disconnected: the server drops armed state, so the
             // HUD must not keep showing a stale "ARMED:".
             armedDisplay = null;
+            armedId = null;
+            StratagemHud.clearCooldowns();
             lastDimension = null;
             return;
         }
@@ -143,6 +147,8 @@ public class ClientStratagemInput {
         if (lastDimension != null && !lastDimension.equals(dim)) {
             // Changed dimension: destroyers (and armed state) are overworld-only.
             armedDisplay = null;
+            armedId = null;
+            StratagemHud.clearCooldowns();
         }
         lastDimension = dim;
         if (codeMode) {
@@ -154,7 +160,14 @@ public class ClientStratagemInput {
         // The throw consumed the armed stratagem once the uplink goes on cooldown.
         if (armedDisplay != null && mc.player != null
                 && mc.player.getCooldowns().isOnCooldown(new ItemStack(ModItems.UPLINK.get()))) {
+            // Start the HUD's per-stratagem cooldown timer (display-only; the
+            // server enforces the real cooldown).
+            if (armedId != null) {
+                Stratagem s = StratagemRegistry.get(armedId);
+                if (s != null) StratagemHud.setCooldown(armedId, s.cooldownTicks());
+            }
             armedDisplay = null;
+            armedId = null;
         }
     }
 
