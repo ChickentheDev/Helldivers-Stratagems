@@ -7,6 +7,8 @@ import dev.chickenthedev.stratagems.client.SentryRenderer;
 import dev.chickenthedev.stratagems.client.DestroyerRenderer;
 import dev.chickenthedev.stratagems.client.LoadoutScreen;
 import dev.chickenthedev.stratagems.client.NoOpRenderer;
+import dev.chickenthedev.stratagems.client.OrbitalImpactModel;
+import dev.chickenthedev.stratagems.client.OrbitalImpactRenderer;
 import dev.chickenthedev.stratagems.client.StratagemHud;
 import dev.chickenthedev.stratagems.item.StratagemLoadoutItem;
 import dev.chickenthedev.stratagems.network.ArmStratagemPayload;
@@ -77,6 +79,7 @@ public class StratagemsModNeoForgeClient {
             event.registerEntityRenderer(ModEntities.SHIELD_DOME.get(), NoOpRenderer::new);
             event.registerEntityRenderer(ModEntities.DESTROYER.get(), DestroyerRenderer::new);
             event.registerEntityRenderer(ModEntities.SENTRY.get(), SentryRenderer::new);
+            event.registerEntityRenderer(ModEntities.ORBITAL_IMPACT.get(), OrbitalImpactRenderer::new);
         });
 
         modBus.addListener((EntityRenderersEvent.RegisterLayerDefinitions event) ->
@@ -84,5 +87,8 @@ public class StratagemsModNeoForgeClient {
 
         modBus.addListener((EntityRenderersEvent.RegisterLayerDefinitions event) ->
                 event.registerLayerDefinition(SentryModel.LAYER, SentryModel::createBodyLayer));
+
+        modBus.addListener((EntityRenderersEvent.RegisterLayerDefinitions event) ->
+                event.registerLayerDefinition(OrbitalImpactModel.LAYER, OrbitalImpactModel::createBodyLayer));
     }
 }

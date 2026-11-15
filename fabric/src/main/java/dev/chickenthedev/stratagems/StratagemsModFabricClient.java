@@ -7,6 +7,8 @@ import dev.chickenthedev.stratagems.client.SentryRenderer;
 import dev.chickenthedev.stratagems.client.DestroyerRenderer;
 import dev.chickenthedev.stratagems.client.LoadoutScreen;
 import dev.chickenthedev.stratagems.client.NoOpRenderer;
+import dev.chickenthedev.stratagems.client.OrbitalImpactModel;
+import dev.chickenthedev.stratagems.client.OrbitalImpactRenderer;
 import dev.chickenthedev.stratagems.client.StratagemHud;
 import dev.chickenthedev.stratagems.item.StratagemLoadoutItem;
 import dev.chickenthedev.stratagems.network.ArmStratagemPayload;
@@ -72,9 +74,11 @@ public class StratagemsModFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(ModEntities.BEACON.get(), ThrownItemRenderer::new);
         EntityRendererRegistry.register(ModEntities.STRIKE_SHELL.get(), ThrownItemRenderer::new);
         EntityRendererRegistry.register(ModEntities.SHIELD_DOME.get(), NoOpRenderer::new);
+        EntityRendererRegistry.register(ModEntities.ORBITAL_IMPACT.get(), OrbitalImpactRenderer::new);
 
         ModelLayerRegistry.registerModelLayer(DestroyerModel.LAYER, DestroyerModel::createBodyLayer);
         ModelLayerRegistry.registerModelLayer(SentryModel.LAYER, SentryModel::createBodyLayer);
+        ModelLayerRegistry.registerModelLayer(OrbitalImpactModel.LAYER, OrbitalImpactModel::createBodyLayer);
         EntityRendererRegistry.register(ModEntities.DESTROYER.get(), DestroyerRenderer::new);
         EntityRendererRegistry.register(ModEntities.SENTRY.get(), SentryRenderer::new);
     }

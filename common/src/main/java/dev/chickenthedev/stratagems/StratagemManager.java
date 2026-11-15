@@ -1,6 +1,7 @@
 package dev.chickenthedev.stratagems;
 
 import dev.chickenthedev.stratagems.entity.DestroyerEntity;
+import dev.chickenthedev.stratagems.entity.OrbitalImpactEntity;
 import dev.chickenthedev.stratagems.entity.SentryEntity;
 import dev.chickenthedev.stratagems.entity.ShieldDomeEntity;
 import dev.chickenthedev.stratagems.entity.StratagemBeaconEntity;
@@ -253,6 +254,11 @@ public class StratagemManager {
     // expanding spark ring make the impact location readable even in a busy fight.
     private static void orbitalImpactVisual(ServerLevel level, Vec3 pos,
                                             double beamHeight, double ringRadius, int ringPoints) {
+        OrbitalImpactEntity renderEffect = new OrbitalImpactEntity(ModEntities.ORBITAL_IMPACT.get(), level);
+        renderEffect.setRailcannon(beamHeight >= 96);
+        renderEffect.setPos(pos.x, pos.y, pos.z);
+        level.addFreshEntity(renderEffect);
+
         level.sendParticles(ParticleTypes.FLASH, pos.x, pos.y + 0.5, pos.z, 1, 0, 0, 0, 0);
         level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, pos.x, pos.y + 0.5, pos.z,
                 1, 0.2, 0.2, 0.2, 0);
@@ -353,14 +359,14 @@ public class StratagemManager {
         Constants.LOG.info("Stratagem inbound: {} at {}", stratagem.name, BlockPos.containing(pos));
         level.playSound(null, BlockPos.containing(pos), SoundEvents.LIGHTNING_BOLT_THUNDER,
                 SoundSource.WEATHER, 1.0F, 0.7F);
-        if (!isPodDelivery(stratagemId)) {
+        boolean orbitalStyle = stratagemId.startsWith("orbital_") || stratagemId.startsWith("eagle_")
+                || stratagemId.equals("m_seaf") || stratagemId.equals("m_hellbomb");
+        if (orbitalStyle) {
             boolean railcannon = stratagemId.equals("orbital_railcannon");
             orbitalImpactVisual(level, pos, railcannon ? 96 : 48,
                     railcannon ? 24 : 12, railcannon ? 40 : 28);
         }
-        if (StratagemConfig.INSTANCE.screenShockwave
-                && (stratagemId.startsWith("orbital_") || stratagemId.startsWith("eagle_")
-                || stratagemId.equals("m_seaf") || stratagemId.equals("m_hellbomb"))) {
+        if (StratagemConfig.INSTANCE.screenShockwave && orbitalStyle) {
             orbitalScreenEffect(level, pos);
         }
 

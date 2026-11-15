@@ -1,6 +1,7 @@
 package dev.chickenthedev.stratagems;
 
 import dev.chickenthedev.stratagems.entity.DestroyerEntity;
+import dev.chickenthedev.stratagems.entity.OrbitalImpactEntity;
 import dev.chickenthedev.stratagems.entity.SentryEntity;
 import dev.chickenthedev.stratagems.entity.ShieldDomeEntity;
 import dev.chickenthedev.stratagems.entity.StratagemBeaconEntity;
@@ -21,6 +22,7 @@ public class ModEntities {
     public static Supplier<EntityType<DestroyerEntity>> DESTROYER;
     public static Supplier<EntityType<SentryEntity>> SENTRY;
     public static Supplier<EntityType<StrikeShellEntity>> STRIKE_SHELL;
+    public static Supplier<EntityType<OrbitalImpactEntity>> ORBITAL_IMPACT;
 
     public static void register(IRegistryHelper registries) {
         BEACON = registries.registerEntityType("stratagem_beacon", () ->
@@ -55,6 +57,12 @@ public class ModEntities {
                         .clientTrackingRange(16)
                         .updateInterval(2)
                         .build(key("strike_shell")));
+        ORBITAL_IMPACT = registries.registerEntityType("orbital_impact", () ->
+                EntityType.Builder.<OrbitalImpactEntity>of(OrbitalImpactEntity::new, MobCategory.MISC)
+                        .sized(0.8F, 0.8F)
+                        .clientTrackingRange(16)
+                        .updateInterval(1)
+                        .build(key("orbital_impact")));
     }
 
     private static ResourceKey<EntityType<?>> key(String id) {
