@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 // Simple JSON config in config/stratagems.json. Lets players tune cooldowns,
-// call-in delays, and whether stratagem explosions break blocks.
+// call-in delays, block damage, and the orbital screen effect.
 public class StratagemConfig {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -21,6 +21,7 @@ public class StratagemConfig {
     public Map<String, Integer> cooldownSeconds = new HashMap<>();
     public Map<String, Integer> callInSeconds = new HashMap<>();
     public boolean blockDamage = true;
+    public boolean screenShockwave = true;
 
     public int cooldownTicksFor(String id, int defaultTicks) {
         Integer seconds = cooldownSeconds.get(id);

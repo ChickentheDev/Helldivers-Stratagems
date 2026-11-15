@@ -1,6 +1,7 @@
 package dev.chickenthedev.stratagems;
 
 import dev.chickenthedev.stratagems.entity.DestroyerEntity;
+import dev.chickenthedev.stratagems.entity.OrbitalImpactEntity;
 import dev.chickenthedev.stratagems.entity.SentryEntity;
 import dev.chickenthedev.stratagems.entity.ShieldDomeEntity;
 import dev.chickenthedev.stratagems.entity.StratagemBeaconEntity;
@@ -249,6 +250,58 @@ public class StratagemManager {
         }
     }
 
+    // A short, bright orbital strike cue before the ground effect. The beam and
+    // expanding spark ring make the impact location readable even in a busy fight.
+    private static void orbitalImpactVisual(ServerLevel level, Vec3 pos,
+                                            double beamHeight, double ringRadius, int ringPoints) {
+        OrbitalImpactEntity renderEffect = new OrbitalImpactEntity(ModEntities.ORBITAL_IMPACT.get(), level);
+        renderEffect.setRailcannon(beamHeight >= 96);
+        renderEffect.setPos(pos.x, pos.y, pos.z);
+        level.addFreshEntity(renderEffect);
+
+        level.sendParticles(ParticleTypes.FLASH, pos.x, pos.y + 0.5, pos.z, 1, 0, 0, 0, 0);
+        level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, pos.x, pos.y + 0.5, pos.z,
+                1, 0.2, 0.2, 0.2, 0);
+
+        // Dotted energy column gives the hit a clear orbital source.
+        for (double y = 3; y <= beamHeight; y += 2.5) {
+            double drift = Math.sin(y * 0.17) * 0.35;
+            level.sendParticles(ParticleTypes.END_ROD, pos.x + drift, pos.y + y, pos.z,
+                    1, 0.18, 0.3, 0.18, 0.02);
+            if (((int) y) % 5 == 0) {
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+                        pos.x - drift, pos.y + y, pos.z, 2, 0.35, 0.5, 0.35, 0.03);
+            }
+        }
+
+        // Ground-level shock ring.
+        for (int i = 0; i < ringPoints; i++) {
+            double angle = i * Math.PI * 2 / ringPoints;
+            double x = pos.x + Math.cos(angle) * ringRadius;
+            double z = pos.z + Math.sin(angle) * ringRadius;
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+                    x, pos.y + 0.4, z, 3, 0.35, 0.45, 0.35, 0.08);
+            level.sendParticles(ParticleTypes.CLOUD,
+                    x, pos.y + 0.2, z, 2, 0.45, 0.25, 0.45, 0.04);
+        }
+    }
+
+    // The post effect runs on each nearby player's client and is removed after
+    // a short pulse. Keep it client-side so players without the mod are unaffected.
+    private static void orbitalScreenEffect(ServerLevel level, Vec3 pos) {
+        var server = level.getServer();
+        var commands = server.getCommands();
+        var source = server.createCommandSourceStack();
+        for (ServerPlayer player : level.players()) {
+            if (player.distanceToSqr(pos) > 192.0 * 192.0) continue;
+            String target = player.getScoreboardName();
+            commands.performPrefixedCommand(source,
+                    "posteffect add " + target + " stratagems:orbital_shockwave");
+            schedule(level, 40, () -> commands.performPrefixedCommand(source,
+                    "posteffect remove " + target + " stratagems:orbital_shockwave"));
+        }
+    }
+
     // Fired when a beacon's call-in countdown finishes. The round is fired from
     // the owner's Super Destroyer (look up and you can watch it come down);
     // pods fall as supply pods, strikes as glowing shells. Effects that have
@@ -306,6 +359,16 @@ public class StratagemManager {
         Constants.LOG.info("Stratagem inbound: {} at {}", stratagem.name, BlockPos.containing(pos));
         level.playSound(null, BlockPos.containing(pos), SoundEvents.LIGHTNING_BOLT_THUNDER,
                 SoundSource.WEATHER, 1.0F, 0.7F);
+        boolean orbitalStyle = stratagemId.startsWith("orbital_") || stratagemId.startsWith("eagle_")
+                || stratagemId.equals("m_seaf") || stratagemId.equals("m_hellbomb");
+        if (orbitalStyle) {
+            boolean railcannon = stratagemId.equals("orbital_railcannon");
+            orbitalImpactVisual(level, pos, railcannon ? 96 : 48,
+                    railcannon ? 24 : 12, railcannon ? 40 : 28);
+        }
+        if (StratagemConfig.INSTANCE.screenShockwave && orbitalStyle) {
+            orbitalScreenEffect(level, pos);
+        }
 
         switch (stratagemId) {
             // ---- Orbital Strikes ----
