@@ -61,17 +61,25 @@ public class StrikeShellEntity extends ThrowableItemProjectile {
 
     @Override
     protected Item getDefaultItem() {
-        return pod ? Items.CHEST : Items.FIRE_CHARGE;
+        return pod ? Items.CHEST : Items.NETHER_STAR;
     }
 
     @Override
     public void tick() {
         super.tick();
         if (level().isClientSide()) {
-            // Tracer so you can watch the round come down from the ship.
+            // Bright, energetic tracer makes the incoming round readable from
+            // a distance instead of looking like an ordinary thrown item.
             Vec3 p = position();
             level().addParticle(pod ? ParticleTypes.CLOUD : ParticleTypes.END_ROD,
                     p.x, p.y, p.z, 0, 0, 0);
+            if (!pod) {
+                level().addParticle(ParticleTypes.ELECTRIC_SPARK,
+                        p.x, p.y, p.z, (level().getRandom().nextDouble() - 0.5) * 0.12,
+                        (level().getRandom().nextDouble() - 0.5) * 0.12,
+                        (level().getRandom().nextDouble() - 0.5) * 0.12);
+                level().addParticle(ParticleTypes.FLAME, p.x, p.y, p.z, 0, 0, 0);
+            }
             return;
         }
         elapsed++;
