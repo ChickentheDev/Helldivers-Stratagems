@@ -121,7 +121,7 @@ All 100 stratagems from Helldivers 2, with their real in-game arrow codes.
 | SEAF Artillery | → ↑ ↑ ↓ | 180s | 5s | Artillery barrage |
 | Super Earth Flag | ↓ ↑ ↓ ↑ | 300s | 5s | Super Earth flag + speed |
 
-Cooldowns, call-in times and block damage are configurable in `config/stratagems.json`.
+Cooldowns, call-in times, block damage and the orbital screen shockwave are configurable in `config/stratagems.json`. Set `screenShockwave` to `false` to disable the brief screen distortion effect.
 
 ## Building
 

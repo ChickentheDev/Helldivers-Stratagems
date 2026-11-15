@@ -280,6 +280,22 @@ public class StratagemManager {
         }
     }
 
+    // The post effect runs on each nearby player's client and is removed after
+    // a short pulse. Keep it client-side so players without the mod are unaffected.
+    private static void orbitalScreenEffect(ServerLevel level, Vec3 pos) {
+        var server = level.getServer();
+        var commands = server.getCommands();
+        var source = server.createCommandSourceStack();
+        for (ServerPlayer player : level.players()) {
+            if (player.distanceToSqr(pos) > 192.0 * 192.0) continue;
+            String target = player.getScoreboardName();
+            commands.performPrefixedCommand(source,
+                    "posteffect add " + target + " stratagems:orbital_shockwave");
+            schedule(level, 40, () -> commands.performPrefixedCommand(source,
+                    "posteffect remove " + target + " stratagems:orbital_shockwave"));
+        }
+    }
+
     // Fired when a beacon's call-in countdown finishes. The round is fired from
     // the owner's Super Destroyer (look up and you can watch it come down);
     // pods fall as supply pods, strikes as glowing shells. Effects that have
@@ -341,6 +357,11 @@ public class StratagemManager {
             boolean railcannon = stratagemId.equals("orbital_railcannon");
             orbitalImpactVisual(level, pos, railcannon ? 96 : 48,
                     railcannon ? 24 : 12, railcannon ? 40 : 28);
+        }
+        if (StratagemConfig.INSTANCE.screenShockwave
+                && (stratagemId.startsWith("orbital_") || stratagemId.startsWith("eagle_")
+                || stratagemId.equals("m_seaf") || stratagemId.equals("m_hellbomb"))) {
+            orbitalScreenEffect(level, pos);
         }
 
         switch (stratagemId) {
