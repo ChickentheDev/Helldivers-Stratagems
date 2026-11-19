@@ -26,6 +26,7 @@ public class ClientStratagemInput {
 
     private static Consumer<String> armSender;
     private static Consumer<List<String>> loadoutSender;
+    private static Runnable throwSender;
     private static boolean codeMode = false;
     private static final List<Direction> buffer = new ArrayList<>();
     private static List<String> activeLoadout = List.of();
@@ -42,6 +43,27 @@ public class ClientStratagemInput {
 
     public static void initLoadout(Consumer<List<String>> sender) {
         loadoutSender = sender;
+    }
+
+    public static void initThrow(Runnable sender) {
+        throwSender = sender;
+    }
+
+    /** Throw keybind pressed: throw the armed stratagem without holding the uplink. */
+    public static void onThrowKey() {
+        if (codeMode) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.gui.screen() != null) return;
+        if (armedId == null) return;
+        if (throwSender != null) throwSender.run();
+    }
+
+    /** Server confirmed a throw: start the HUD's per-stratagem cooldown timer
+     * and clear the armed display (the server consumed the armed state). */
+    public static void onThrowConfirmed(String id, int ticks) {
+        StratagemHud.setCooldown(id, ticks);
+        armedDisplay = null;
+        armedId = null;
     }
 
     /** Send a confirmed 4-stratagem loadout to the server. */
@@ -69,7 +91,8 @@ public class ClientStratagemInput {
     }
 
     /** The uplink anywhere in the inventory (hotbar, main, or offhand) — it no
-     * longer needs to be held to open code mode. The throw still needs it held. */
+     * longer needs to be held to open code mode, and the throw keybind works
+     * without holding it either. */
     public static boolean hasUplink() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return false;
@@ -95,6 +118,10 @@ public class ClientStratagemInput {
             hintUntilMs = System.currentTimeMillis() + 2500;
             return;
         }
+        // Starting a new code entry supersedes any previous armed stratagem
+        // (e.g. one whose throw was blocked by its own cooldown).
+        armedDisplay = null;
+        armedId = null;
         codeMode = true;
         buffer.clear();
         activeLoadout = StratagemLoadout.get(StratagemLoadout.findUplink(mc.player));
@@ -157,18 +184,10 @@ public class ClientStratagemInput {
                 exitCodeMode();
             }
         }
-        // The throw consumed the armed stratagem once the uplink goes on cooldown.
-        if (armedDisplay != null && mc.player != null
-                && mc.player.getCooldowns().isOnCooldown(new ItemStack(ModItems.UPLINK.get()))) {
-            // Start the HUD's per-stratagem cooldown timer (display-only; the
-            // server enforces the real cooldown).
-            if (armedId != null) {
-                Stratagem s = StratagemRegistry.get(armedId);
-                if (s != null) StratagemHud.setCooldown(armedId, s.cooldownTicks());
-            }
-            armedDisplay = null;
-            armedId = null;
-        }
+        // The throw is confirmed by a server packet (onThrowConfirmed), which
+        // starts the HUD cooldown timer and clears the armed display. The
+        // uplink item no longer carries a shared cooldown, so there is
+        // nothing to watch for here.
     }
 
     private static void exitCodeMode() {

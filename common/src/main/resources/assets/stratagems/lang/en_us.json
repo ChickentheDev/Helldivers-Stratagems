@@ -16,5 +16,6 @@
   "key.stratagems.up": "Code: Up",
   "key.stratagems.uplink": "Open Stratagem Code Entry",
   "entity.stratagems.super_destroyer": "Super Destroyer",
-  "entity.stratagems.sentry": "Sentry"
+  "entity.stratagems.sentry": "Sentry",
+  "key.stratagems.throw": "Throw Armed Stratagem"
 }

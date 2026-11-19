@@ -2,6 +2,7 @@ package dev.chickenthedev.stratagems;
 
 import dev.chickenthedev.stratagems.network.ArmStratagemPayload;
 import dev.chickenthedev.stratagems.network.SetLoadoutPayload;
+import dev.chickenthedev.stratagems.network.ThrowStratagemPayload;
 import dev.chickenthedev.stratagems.platform.FabricRegistryHelper;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
@@ -47,6 +48,15 @@ public class StratagemsModFabric implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(SetLoadoutPayload.TYPE,
                 (payload, context) -> context.server().execute(() ->
                         StratagemManager.setLoadout(context.player(), payload.stratagemIds())));
+
+        PayloadTypeRegistry.serverboundPlay().register(ThrowStratagemPayload.TYPE, ThrowStratagemPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(ThrowStratagemPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        StratagemManager.tryThrow(context.player())));
+
+        // Deliver throw confirmations to the throwing player so the HUD can
+        // show the per-stratagem cooldown that exactly mirrors the server.
+        StratagemManager.throwNotifier = (player, payload) -> ServerPlayNetworking.send(player, payload);
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             StratagemManager.serverTick(server);

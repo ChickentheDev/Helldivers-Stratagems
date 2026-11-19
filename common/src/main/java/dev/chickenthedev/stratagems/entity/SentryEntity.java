@@ -222,19 +222,19 @@ public class SentryEntity extends Entity {
     private record SentrySpec(int range, int interval, String attack, double damage) {
         static SentrySpec forKind(String kind) {
             return switch (kind) {
-                case "gatling" -> new SentrySpec(30, 4, "arrow", 8);
-                case "autocannon" -> new SentrySpec(40, 20, "explode", 4);
-                case "mortar" -> new SentrySpec(60, 30, "explode", 6);
-                case "rocket" -> new SentrySpec(50, 25, "rockets", 0);
-                case "tesla" -> new SentrySpec(15, 25, "tesla", 0);
-                case "ems" -> new SentrySpec(60, 30, "ems", 0);
-                case "laser" -> new SentrySpec(40, 10, "laser", 16);
-                case "flame" -> new SentrySpec(12, 12, "flame", 10);
-                case "gas" -> new SentrySpec(60, 20, "gas", 0);
-                case "hmg" -> new SentrySpec(40, 5, "arrow", 16);
-                case "grenadier" -> new SentrySpec(45, 18, "fireball", 0);
-                case "at" -> new SentrySpec(50, 35, "explode", 12);
-                default -> new SentrySpec(30, 8, "arrow", 12); // mg
+                case "gatling" -> new SentrySpec(48, 2, "arrow", 32);
+                case "autocannon" -> new SentrySpec(62, 5, "explode", 16);
+                case "mortar" -> new SentrySpec(94, 8, "explode", 24);
+                case "rocket" -> new SentrySpec(78, 6, "rockets", 0);
+                case "tesla" -> new SentrySpec(24, 6, "tesla", 0);
+                case "ems" -> new SentrySpec(94, 8, "ems", 0);
+                case "laser" -> new SentrySpec(62, 2, "laser", 64);
+                case "flame" -> new SentrySpec(19, 3, "flame", 40);
+                case "gas" -> new SentrySpec(94, 5, "gas", 0);
+                case "hmg" -> new SentrySpec(62, 2, "arrow", 64);
+                case "grenadier" -> new SentrySpec(70, 4, "fireball", 0);
+                case "at" -> new SentrySpec(78, 9, "explode", 48);
+                default -> new SentrySpec(48, 2, "arrow", 48); // mg
             };
         }
     }

@@ -43,13 +43,12 @@ public class StratagemHud {
     private static final int ROW_DIM = 0xFF7A7D82;
     private static final int LIST_YELLOW = 0xFFFFE600;
 
-    // List layout (Sam's StratagemHud design).
-    private static final int X = 6;
-    private static final int ICON = 20;
-    private static final int TEXT_X = X + ICON + 6;
-    private static final int WIDTH = 140;
-    private static final int ROW_H = 26;
-    private static final int HEADER_H = 12;
+    // List layout: small panel pinned to the top-right corner.
+    private static final int MARGIN = 6;
+    private static final int ICON = 16;
+    private static final int WIDTH = 110;
+    private static final int ROW_H = 20;
+    private static final int HEADER_H = 11;
 
     public static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         Minecraft mc = Minecraft.getInstance();
@@ -91,12 +90,13 @@ public class StratagemHud {
         boolean codeMode = ClientStratagemInput.isCodeMode();
         List<Direction> buffer = ClientStratagemInput.getBuffer();
 
-        int total = HEADER_H + ids.size() * ROW_H;
-        int y = graphics.guiHeight() / 2 - total / 2;
+        int x = graphics.guiWidth() - WIDTH - MARGIN;
+        int textX = x + ICON + 6;
+        int y = MARGIN;
 
         // Header
-        graphics.fill(X, y, X + WIDTH, y + HEADER_H, HEADER_BG);
-        graphics.text(font, "STRATAGEMS", X + 6, y + 2, WHITE);
+        graphics.fill(x, y, x + WIDTH, y + HEADER_H, HEADER_BG);
+        graphics.text(font, "STRATAGEMS", x + 6, y + 2, WHITE);
         y += HEADER_H;
 
         for (String id : ids) {
@@ -111,19 +111,19 @@ public class StratagemHud {
             boolean dimmed = cooling || (codeMode && !buffer.isEmpty() && !matching);
 
             // Row background and category tile at the left edge.
-            graphics.fill(TEXT_X - 3, y, X + WIDTH, y + ROW_H, ROW_BG);
-            graphics.fill(X, y + 3, X + ICON, y + 3 + ICON, categoryColor(s.category, dimmed));
+            graphics.fill(textX - 3, y, x + WIDTH, y + ROW_H, ROW_BG);
+            graphics.fill(x, y + 2, x + ICON, y + 2 + ICON, categoryColor(s.category, dimmed));
             String initial = s.name.isEmpty() ? "?" : s.name.substring(0, 1);
-            graphics.text(font, initial, X + (ICON - font.width(initial)) / 2, y + 9, 0xFF101114);
+            graphics.text(font, initial, x + (ICON - font.width(initial)) / 2, y + 7, 0xFF101114);
 
             // Stratagem name
-            graphics.text(font, trim(font, s.name, WIDTH - ICON - 10), TEXT_X, y + 4, dimmed ? ROW_DIM : WHITE);
+            graphics.text(font, trim(font, s.name, WIDTH - ICON - 10), textX, y + 3, dimmed ? ROW_DIM : WHITE);
 
             // Cooldown status or directional input sequence
             if (cooling) {
-                graphics.text(font, "Cooldown " + fmt(left), TEXT_X, y + 14, dimmed ? ROW_DIM : WHITE);
+                graphics.text(font, "Cooldown " + fmt(left), textX, y + 11, dimmed ? ROW_DIM : WHITE);
             } else {
-                drawCode(graphics, font, s.code, buffer, matching, TEXT_X, y + 14);
+                drawCode(graphics, font, s.code, buffer, matching, textX, y + 11);
             }
             y += ROW_H;
         }

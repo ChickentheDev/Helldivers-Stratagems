@@ -1,7 +1,10 @@
 package dev.chickenthedev.stratagems;
 
+import dev.chickenthedev.stratagems.client.ClientStratagemInput;
 import dev.chickenthedev.stratagems.network.ArmStratagemPayload;
 import dev.chickenthedev.stratagems.network.SetLoadoutPayload;
+import dev.chickenthedev.stratagems.network.ThrowConfirmedPayload;
+import dev.chickenthedev.stratagems.network.ThrowStratagemPayload;
 import dev.chickenthedev.stratagems.platform.NeoForgeRegistryHelper;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,6 +19,7 @@ import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -54,7 +58,22 @@ public class StratagemsModNeoForge {
             registrar.playToServer(SetLoadoutPayload.TYPE, SetLoadoutPayload.CODEC,
                     (payload, context) -> context.enqueueWork(() ->
                             StratagemManager.setLoadout((ServerPlayer) context.player(), payload.stratagemIds())));
+            registrar.playToServer(ThrowStratagemPayload.TYPE, ThrowStratagemPayload.CODEC,
+                    (payload, context) -> context.enqueueWork(() ->
+                            StratagemManager.tryThrow((ServerPlayer) context.player())));
+            // Runs only on the client (a dedicated server never receives its
+            // own clientbound packets); the lambda body loads the client-only
+            // input class solely when a confirmation actually arrives.
+            registrar.playToClient(ThrowConfirmedPayload.TYPE, ThrowConfirmedPayload.CODEC,
+                    (payload, context) -> context.enqueueWork(() ->
+                            ClientStratagemInput.onThrowConfirmed(
+                                    payload.stratagemId(), payload.cooldownTicks())));
         });
+
+        // Deliver throw confirmations to the throwing player so the HUD can
+        // show the per-stratagem cooldown that exactly mirrors the server.
+        StratagemManager.throwNotifier =
+                (player, payload) -> PacketDistributor.sendToPlayer(player, payload);
 
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> {
             StratagemManager.serverTick(event.getServer());

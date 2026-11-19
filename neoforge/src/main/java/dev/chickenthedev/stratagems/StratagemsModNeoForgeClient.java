@@ -11,6 +11,7 @@ import dev.chickenthedev.stratagems.client.StratagemHud;
 import dev.chickenthedev.stratagems.item.StratagemLoadoutItem;
 import dev.chickenthedev.stratagems.network.ArmStratagemPayload;
 import dev.chickenthedev.stratagems.network.SetLoadoutPayload;
+import dev.chickenthedev.stratagems.network.ThrowStratagemPayload;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.KeyMapping.Category;
@@ -32,6 +33,7 @@ public class StratagemsModNeoForgeClient {
     private static KeyMapping downKey;
     private static KeyMapping leftKey;
     private static KeyMapping rightKey;
+    private static KeyMapping throwKey;
 
     private static final Category CATEGORY =
             new Category(Identifier.fromNamespaceAndPath(Constants.MOD_ID, "stratagems"));
@@ -39,6 +41,7 @@ public class StratagemsModNeoForgeClient {
     public static void init(IEventBus modBus) {
         ClientStratagemInput.init(id -> ClientPacketDistributor.sendToServer(new ArmStratagemPayload(id)));
         ClientStratagemInput.initLoadout(ids -> ClientPacketDistributor.sendToServer(new SetLoadoutPayload(ids)));
+        ClientStratagemInput.initThrow(() -> ClientPacketDistributor.sendToServer(new ThrowStratagemPayload()));
         StratagemLoadoutItem.screenOpener = ids ->
                 net.minecraft.client.Minecraft.getInstance().gui.setScreen(new LoadoutScreen(ids));
 
@@ -48,16 +51,21 @@ public class StratagemsModNeoForgeClient {
             downKey = new KeyMapping("key.stratagems.down", InputConstants.Type.KEYBOARD, GLFW.GLFW_KEY_DOWN, CATEGORY);
             leftKey = new KeyMapping("key.stratagems.left", InputConstants.Type.KEYBOARD, GLFW.GLFW_KEY_LEFT, CATEGORY);
             rightKey = new KeyMapping("key.stratagems.right", InputConstants.Type.KEYBOARD, GLFW.GLFW_KEY_RIGHT, CATEGORY);
+            throwKey = new KeyMapping("key.stratagems.throw", InputConstants.Type.KEYBOARD, GLFW.GLFW_KEY_R, CATEGORY);
             event.register(uplinkKey);
             event.register(upKey);
             event.register(downKey);
             event.register(leftKey);
             event.register(rightKey);
+            event.register(throwKey);
         });
 
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> {
             if (uplinkKey != null && uplinkKey.consumeClick()) {
                 ClientStratagemInput.onUplinkKey();
+            }
+            if (throwKey != null && throwKey.consumeClick()) {
+                ClientStratagemInput.onThrowKey();
             }
             if (ClientStratagemInput.isCodeMode()) {
                 if (upKey.consumeClick()) ClientStratagemInput.onDirection(Direction.UP);
